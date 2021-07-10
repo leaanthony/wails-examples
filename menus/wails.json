@@ -1,0 +1,11 @@
+{
+    "name": "menus",
+    "outputfilename": "menus",
+    "html": "frontend/dist/index.html",
+    "frontend:build": "npm run build",
+    "frontend:install": "npm install",
+    "author": {
+        "name": "Lea Anthony",
+        "email": "lea.anthony@gmail.com"
+    }
+}
