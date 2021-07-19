@@ -1,15 +1,18 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/wailsapp/wails/v2/pkg/menu"
-
-	"github.com/wailsapp/wails/v2"
+	"github.com/wailsapp/wails/v2/pkg/menu/keys"
+	"github.com/wailsapp/wails/v2/pkg/runtime/dialog"
+	"github.com/wailsapp/wails/v2/pkg/runtime/events"
+	"github.com/wailsapp/wails/v2/pkg/runtime/log"
 )
 
 // App application struct
 type App struct {
-	runtime *wails.Runtime
+	ctx context.Context
 }
 
 // NewApp creates a new App application struct
@@ -18,39 +21,49 @@ func NewApp() *App {
 }
 
 // startup is called at application startup
-func (b *App) startup(runtime *wails.Runtime) {
+func (a *App) startup(ctx context.Context) {
 	// Perform your setup here
-	b.runtime = runtime
+	println("startup called with ctx!")
+	a.ctx = ctx
 }
 
 // shutdown is called at application termination
-func (b *App) shutdown() {
+func (a *App) shutdown() {
 	// Perform your teardown here
 }
 
 // Greet returns a greeting for the given name
-func (b *App) Greet(name string) string {
+func (a *App) Greet(name string) string {
 	return fmt.Sprintf("Hello %s!", name)
 }
 
-func (b *App) ApplicationMenu() *menu.Menu {
+// ApplicationMenu creates a menu that we will use for the
+// application
+func (a *App) ApplicationMenu() *menu.Menu {
 
+	// We can use the same callback for multiple menu items
 	handleRadio := func(cbdata *menu.CallbackData) {
-		println("Radio Item selected:", cbdata.MenuItem.Label)
+		// The menu item that was selected can be accessed through the
+		// callback data
+		events.Emit(a.ctx, "updatecolour", cbdata.MenuItem.Label)
 	}
 
+	// We can define menu items and reuse them.
+	// Their state will stay in sync.
 	checkbox := &menu.MenuItem{
 		Label:   "Checked",
 		Type:    menu.CheckboxType,
 		Checked: true,
-		Click: func(data *menu.CallbackData) {
-			println("checked =", data.MenuItem.Checked)
+		Click: func(cbdata *menu.CallbackData) {
+			log.Debug(a.ctx, fmt.Sprintf("checked = %v", cbdata.MenuItem.Checked))
+			events.Emit(a.ctx, "checkboxstatus", cbdata.MenuItem.Label)
 		},
 	}
 
-	radioMenu1 := menu.Radio("Radio 1", true, nil, handleRadio)
-	radioMenu2 := menu.Radio("Radio 2", false, nil, handleRadio)
-	radioMenu3 := menu.Radio("Radio 3", false, nil, handleRadio)
+	// Radio groups are automatically made by adjacent radio menu items
+	radioMenu1 := menu.Radio("White", true, nil, handleRadio)
+	radioMenu2 := menu.Radio("Green", false, nil, handleRadio)
+	radioMenu3 := menu.Radio("Red", false, nil, handleRadio)
 
 	secretMenu := menu.SubMenu("Secret Menu",
 		menu.NewMenuFromItems(
@@ -61,8 +74,12 @@ func (b *App) ApplicationMenu() *menu.Menu {
 			checkbox,
 		),
 	)
+
+	// Menu items can be hidden
 	secretMenu.Hidden = true
 
+	// Menus can be updated by callbacks. Updates will get reflected after
+	// calling `runtime.Menu.UpdateApplicationMenu()`
 	toggleSecretMenu := func(cbdata *menu.CallbackData) {
 		secretMenu.Hidden = !secretMenu.Hidden
 		if secretMenu.Hidden {
@@ -70,13 +87,39 @@ func (b *App) ApplicationMenu() *menu.Menu {
 		} else {
 			cbdata.MenuItem.Label = "Hide secret menu! 😲"
 		}
-		b.runtime.Menu.UpdateApplicationMenu()
+		//a.runtime.Menu.UpdateApplicationMenu()
 	}
 
 	return menu.NewMenuFromItems(
 		menu.SubMenu("File", menu.NewMenuFromItems(
-			menu.Text("Open", nil, func(_ *menu.CallbackData) {
-				println("Open CALLback called!")
+			menu.Text("&Open", keys.CmdOrCtrl("o"), func(cbdata *menu.CallbackData) {
+				filename, err := dialog.OpenFile(a.ctx, dialog.OpenDialogOptions{
+					DefaultDirectory:           "",
+					DefaultFilename:            "",
+					Title:                      "Selct yer fil",
+					Filters:                    nil,
+					AllowFiles:                 false,
+					AllowDirectories:           false,
+					ShowHiddenFiles:            false,
+					CanCreateDirectories:       false,
+					ResolvesAliases:            false,
+					TreatPackagesAsDirectories: false,
+				})
+				_, err = dialog.Message(a.ctx, dialog.MessageDialogOptions{
+					Type:          "info",
+					Title:         "Hello",
+					Message:       filename,
+					Buttons:       nil,
+					DefaultButton: "",
+					CancelButton:  "",
+					Icon:          "",
+				})
+				if err != nil {
+					return
+				}
+				if err != nil {
+					return
+				}
 			}),
 			menu.Separator(),
 			menu.SubMenu("Submenu",
@@ -100,7 +143,7 @@ func (b *App) ApplicationMenu() *menu.Menu {
 					menu.Text("Text Menu Item", nil, nil),
 				),
 			),
-			menu.Text("Quit", nil, func(_ *menu.CallbackData) {
+			menu.Text("Quit", keys.CmdOrCtrl("q"), func(_ *menu.CallbackData) {
 				println("QUIT CALLBACK CALLED!")
 			}),
 		)),

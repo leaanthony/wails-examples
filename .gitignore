@@ -1,4 +1,5 @@
 node_modules/
 .idea/
+**/frontend/dist/
 bin
 package.json.md5
