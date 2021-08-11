@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"github.com/wailsapp/wails/v2/pkg/menu"
 	"github.com/wailsapp/wails/v2/pkg/menu/keys"
-	"github.com/wailsapp/wails/v2/pkg/runtime/dialog"
-	"github.com/wailsapp/wails/v2/pkg/runtime/events"
-	"github.com/wailsapp/wails/v2/pkg/runtime/log"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // App application struct
@@ -25,11 +23,16 @@ func (a *App) startup(ctx context.Context) {
 	// Perform your setup here
 	println("startup called with ctx!")
 	a.ctx = ctx
+
+	runtime.EventsOn(ctx, "test", func(optionalData ...interface{}) {
+		runtime.EventsEmit(ctx, "test received")
+	})
 }
 
 // shutdown is called at application termination
 func (a *App) shutdown() {
 	// Perform your teardown here
+	println("Shutdown called!")
 }
 
 // Greet returns a greeting for the given name
@@ -45,7 +48,8 @@ func (a *App) ApplicationMenu() *menu.Menu {
 	handleRadio := func(cbdata *menu.CallbackData) {
 		// The menu item that was selected can be accessed through the
 		// callback data
-		events.Emit(a.ctx, "updatecolour", cbdata.MenuItem.Label)
+		//runtime.Emit(a.ctx, "updatecolour", cbdata.MenuItem.Label)
+		println("radio checked: ", cbdata.MenuItem.Label)
 	}
 
 	// We can define menu items and reuse them.
@@ -55,14 +59,15 @@ func (a *App) ApplicationMenu() *menu.Menu {
 		Type:    menu.CheckboxType,
 		Checked: true,
 		Click: func(cbdata *menu.CallbackData) {
-			log.Debug(a.ctx, fmt.Sprintf("checked = %v", cbdata.MenuItem.Checked))
-			events.Emit(a.ctx, "checkboxstatus", cbdata.MenuItem.Label)
+			fmt.Printf("checked = %v\n", cbdata.MenuItem.Checked)
+			//runtime.Debug(a.ctx, fmt.Sprintf("checked = %v", cbdata.MenuItem.Checked))
+			//runtime.Emit(a.ctx, "checkboxstatus", cbdata.MenuItem.Label)
 		},
 	}
 
 	// Radio groups are automatically made by adjacent radio menu items
-	radioMenu1 := menu.Radio("White", true, nil, handleRadio)
-	radioMenu2 := menu.Radio("Green", false, nil, handleRadio)
+	radioMenu1 := menu.Radio("White", false, nil, handleRadio)
+	radioMenu2 := menu.Radio("Green", true, nil, handleRadio)
 	radioMenu3 := menu.Radio("Red", false, nil, handleRadio)
 
 	secretMenu := menu.SubMenu("Secret Menu",
@@ -87,13 +92,14 @@ func (a *App) ApplicationMenu() *menu.Menu {
 		} else {
 			cbdata.MenuItem.Label = "Hide secret menu! 😲"
 		}
-		//a.runtime.Menu.UpdateApplicationMenu()
+		runtime.UpdateApplicationMenu(a.ctx)
 	}
 
 	return menu.NewMenuFromItems(
 		menu.SubMenu("File", menu.NewMenuFromItems(
 			menu.Text("&Open", keys.CmdOrCtrl("o"), func(cbdata *menu.CallbackData) {
-				filename, err := dialog.OpenFile(a.ctx, dialog.OpenDialogOptions{
+				println("Open Called!")
+				filename, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
 					DefaultDirectory:           "",
 					DefaultFilename:            "",
 					Title:                      "Selct yer fil",
@@ -105,7 +111,7 @@ func (a *App) ApplicationMenu() *menu.Menu {
 					ResolvesAliases:            false,
 					TreatPackagesAsDirectories: false,
 				})
-				_, err = dialog.Message(a.ctx, dialog.MessageDialogOptions{
+				_, err = runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
 					Type:          "info",
 					Title:         "Hello",
 					Message:       filename,
@@ -127,6 +133,7 @@ func (a *App) ApplicationMenu() *menu.Menu {
 					&menu.MenuItem{
 						Label:    "Disabled",
 						Type:     menu.TextType,
+						Tooltip:  "This is a test",
 						Disabled: true,
 					},
 					&menu.MenuItem{
@@ -140,6 +147,15 @@ func (a *App) ApplicationMenu() *menu.Menu {
 					radioMenu1,
 					radioMenu2,
 					radioMenu3,
+					menu.Separator(),
+					radioMenu1,
+					radioMenu2,
+					radioMenu3,
+					&menu.MenuItem{
+						Label:   "Hover over me",
+						Tooltip: "No way!",
+						Type:    menu.TextType,
+					},
 					menu.Text("Text Menu Item", nil, nil),
 				),
 			),

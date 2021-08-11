@@ -3,7 +3,8 @@
 	let greeting = "";
 
 	function greet() {
-		window.backend.main.App.Greet(name).then((result) => {
+	    runtime.LogInfo("Hello there!");
+		backend.main.App.Greet(name).then((result) => {
 			greeting = result;
 		});
 	}
