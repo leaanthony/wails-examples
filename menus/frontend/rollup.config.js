@@ -4,9 +4,11 @@ import resolve from '@rollup/plugin-node-resolve';
 import livereload from 'rollup-plugin-livereload';
 import { terser } from 'rollup-plugin-terser';
 import copy from 'rollup-plugin-copy';
-import image from '@rollup/plugin-image';
+// import image from '@rollup/plugin-image';
 import postcss from 'rollup-plugin-postcss'
-import url from 'postcss-url';
+// import url from 'postcss-url';
+import typescript from '@rollup/plugin-typescript';
+import autoProcess from 'svelte-preprocess';
 
 const production = !process.env.ROLLUP_WATCH;
 
@@ -40,22 +42,19 @@ export default {
 		file: 'dist/bundle.js'
 	},
 	plugins: [
-		image({
-			include: './src/assets/images/**'
-		}),
 		svelte({
+			preprocess: autoProcess(),
 			compilerOptions: {
 				// enable run-time checks when not in production
 				dev: !production
 			}
 		}),
+		typescript({
+			rootDir: './src',
+
+		}),
 		postcss({
 			minimize: true,
-			plugins: [
-				url({
-					url: "inline"
-				})
-			]
 		}),
 		// If you have external dependencies installed from
 		// npm, you'll most likely need these plugins. In
@@ -70,20 +69,21 @@ export default {
 		copy({
 			targets: [
 				{ src: 'src/index.html', dest: 'dist/' },
+				{ src: 'src/assets', dest: 'dist/' },
 			]
 		}),
 
-		// In dev mode, call `npm run start` once
-		// the bundle has been generated
-		!production && serve(),
+		// // In dev mode, call `npm run start` once
+		// // the bundle has been generated
+		// !production && serve(),
+		//
+		// // Watch the `dist` directory and refresh the
+		// // browser on changes when not in production
+		// !production && livereload('dist'),
 
-		// Watch the `dist` directory and refresh the
-		// browser on changes when not in production
-		!production && livereload('dist'),
-
-		// If we're building for production (npm run build
-		// instead of npm run dev), minify
-		production && terser()
+		// // If we're building for production (npm run build
+		// // instead of npm run dev), minify
+		// production && terser()
 	],
 	watch: {
 		clearScreen: false

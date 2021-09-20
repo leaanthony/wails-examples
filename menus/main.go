@@ -2,14 +2,12 @@ package main
 
 import (
 	"embed"
-	"log"
-
 	"github.com/wailsapp/wails/v2/pkg/options/windows"
+	"log"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/logger"
 	"github.com/wailsapp/wails/v2/pkg/options"
-	"github.com/wailsapp/wails/v2/pkg/options/mac"
 )
 
 //go:embed frontend/dist
@@ -33,24 +31,22 @@ func main() {
 		Frameless:         false,
 		StartHidden:       false,
 		HideWindowOnClose: false,
-		DevTools:          false,
-		RGBA:              0x000000FF,
+		RGBA: &options.RGBA{
+			R: 0,
+			G: 0,
+			B: 0,
+			A: 255,
+		},
+		Menu:   app.applicationMenu(),
+		Assets: assets,
 		Windows: &windows.Options{
-			WebviewIsTransparent:          false,
-			WindowBackgroundIsTranslucent: false,
-			DisableWindowIcon:             false,
-			Menu:                          app.ApplicationMenu(),
-			Assets:                        &assets,
+			//WebviewIsTransparent: true,
+			WindowIsTranslucent: false,
 		},
-		Mac: &mac.Options{
-			WebviewIsTransparent:          true,
-			WindowBackgroundIsTranslucent: true,
-			TitleBar:                      mac.TitleBarHiddenInset(),
-			//Menu:                          menu.DefaultMacMenu(),
-		},
-		LogLevel: logger.DEBUG,
-		Startup:  app.startup,
-		Shutdown: app.shutdown,
+		LogLevel:   logger.DEBUG,
+		OnStartup:  app.startup,
+		OnShutdown: app.shutdown,
+		OnDomReady: app.domready,
 		Bind: []interface{}{
 			app,
 		},

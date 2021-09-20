@@ -8,6 +8,18 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
+type Person struct {
+	Name    string   `json:"name"`
+	Age     uint8    `json:"age"`
+	Phone   string   `json:"phone"`
+	Address *Address `json:"address"`
+}
+
+type Address struct {
+	Street   string `json:"street"`
+	Postcode string `json:"postcode"`
+}
+
 // App application struct
 type App struct {
 	ctx context.Context
@@ -21,34 +33,38 @@ func NewApp() *App {
 // startup is called at application startup
 func (a *App) startup(ctx context.Context) {
 	// Perform your setup here
-	println("startup called with ctx!")
 	a.ctx = ctx
-
-	runtime.EventsOn(ctx, "test", func(optionalData ...interface{}) {
-		runtime.EventsEmit(ctx, "test received")
-	})
 }
 
 // shutdown is called at application termination
-func (a *App) shutdown() {
+func (a *App) shutdown(ctx context.Context) {
 	// Perform your teardown here
 	println("Shutdown called!")
 }
 
-// Greet returns a greeting for the given name
-func (a *App) Greet(name string) string {
-	return fmt.Sprintf("Hello %s!", name)
+func (a *App) domready(ctx context.Context) {
+	// Perform your teardown here
+	println("DomReady called!")
 }
 
-// ApplicationMenu creates a menu that we will use for the
+// Greet returns a greeting for the given name
+func (a *App) Greet(p Person) string {
+	return fmt.Sprintf("Hello %s (Age: %d)!", p.Name, p.Age)
+}
+
+// Greet2 returns a greeting for the given name
+func (a *App) Greet3(p Person) string {
+	return fmt.Sprintf("Hello %s (Age: %d)!", p.Name, p.Age)
+}
+
+// applicationMenu creates a menu that we will use for the
 // application
-func (a *App) ApplicationMenu() *menu.Menu {
+func (a *App) applicationMenu() *menu.Menu {
 
 	// We can use the same callback for multiple menu items
 	handleRadio := func(cbdata *menu.CallbackData) {
 		// The menu item that was selected can be accessed through the
 		// callback data
-		//runtime.Emit(a.ctx, "updatecolour", cbdata.MenuItem.Label)
 		println("radio checked: ", cbdata.MenuItem.Label)
 	}
 
@@ -60,8 +76,6 @@ func (a *App) ApplicationMenu() *menu.Menu {
 		Checked: true,
 		Click: func(cbdata *menu.CallbackData) {
 			fmt.Printf("checked = %v\n", cbdata.MenuItem.Checked)
-			//runtime.Debug(a.ctx, fmt.Sprintf("checked = %v", cbdata.MenuItem.Checked))
-			//runtime.Emit(a.ctx, "checkboxstatus", cbdata.MenuItem.Label)
 		},
 	}
 
@@ -92,7 +106,7 @@ func (a *App) ApplicationMenu() *menu.Menu {
 		} else {
 			cbdata.MenuItem.Label = "Hide secret menu! 😲"
 		}
-		runtime.UpdateApplicationMenu(a.ctx)
+		runtime.MenuUpdateApplicationMenu(a.ctx)
 	}
 
 	return menu.NewMenuFromItems(
@@ -133,7 +147,6 @@ func (a *App) ApplicationMenu() *menu.Menu {
 					&menu.MenuItem{
 						Label:    "Disabled",
 						Type:     menu.TextType,
-						Tooltip:  "This is a test",
 						Disabled: true,
 					},
 					&menu.MenuItem{
@@ -152,15 +165,14 @@ func (a *App) ApplicationMenu() *menu.Menu {
 					radioMenu2,
 					radioMenu3,
 					&menu.MenuItem{
-						Label:   "Hover over me",
-						Tooltip: "No way!",
-						Type:    menu.TextType,
+						Label: "Hover over me",
+						Type:  menu.TextType,
 					},
 					menu.Text("Text Menu Item", nil, nil),
 				),
 			),
 			menu.Text("Quit", keys.CmdOrCtrl("q"), func(_ *menu.CallbackData) {
-				println("QUIT CALLBACK CALLED!")
+				runtime.Quit(a.ctx)
 			}),
 		)),
 		menu.SubMenu("Tests", menu.NewMenuFromItems(

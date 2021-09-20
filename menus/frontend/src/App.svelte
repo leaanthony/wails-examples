@@ -1,13 +1,21 @@
 <script>
+
+
+	import backend from "./wailsjs/go/bindings";
+	import {Person} from "./wailsjs/go/models";
+
 	let name = "";
 	let greeting = "";
 
 	function greet() {
-	    runtime.LogInfo("Hello there!");
-		backend.main.App.Greet(name).then((result) => {
+		let p = new Person();
+		p.name = name;
+		p.age = 31;
+		backend.main.App.Greet(p).then((result) => {
 			greeting = result;
 		});
 	}
+
 </script>
 
 <main>
